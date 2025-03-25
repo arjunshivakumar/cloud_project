@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Water Level Visualization</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom"></script>
+    <style>
+        /* General Styling */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #1e1e2e;
+            color: #ffffff;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+        }
+
+        h2 {
+            margin-bottom: 10px;
+            font-size: 24px;
+        }
+
+        /* Container Styling */
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        /* Card Styling */
+        .card {
+            background-color: #282a36;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+            margin: 20px;
+            width: 90%;
+            max-width: 800px;
+        }
+
+        /* Increased Chart Sizing */
+        #waterChart {
+            width: 100%;
+            height: 450px;
+        }
+
+        .chart-container {
+            width: 320px;
+            height: 320px;
+            margin: auto;
+        }
+
+        /* Zoom Reset Button */
+        .zoom-controls {
+            margin-top: 10px;
+        }
+
+        .zoom-button {
+            background-color: #1db954;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 5px;
+            margin: 5px;
+        }
+
+        .zoom-button:hover {
+            background-color: #17a44a;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- Water Level Over Time -->
+        <div class="card">
+            <h2>Water Level Over Time</h2>
+            <canvas id="waterChart"></canvas>
+            <div class="zoom-controls">
+                <button class="zoom-button" onclick="resetZoom()">Reset Zoom</button>
+            </div>
+        </div>
+
+        <!-- Water Level Percentage -->
+        <div class="card">
+            <h2>Water Level Percentage</h2>
+            <div class="chart-container">
+                <canvas id="doughnutChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function fetchData() {
+            const response = await fetch("/data");
+            const data = await response.json();
+
+            // Line Chart for Water Level Over Time
+            const ctx1 = document.getElementById('waterChart').getContext('2d');
+            const waterChart = new Chart(ctx1, {
+                type: 'line',
+                data: {
+                    labels: data.time,
+                    datasets: [{
+                        label: 'Litres of Water',
+                        data: data.litres,
+                        borderColor: '#4e79a7',
+                        backgroundColor: 'rgba(78, 121, 167, 0.2)',
+                        borderWidth: 2,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        x: { 
+                            title: { display: true, text: 'Time', color: '#ffffff' },
+                            ticks: { color: '#ffffff' }
+                        },
+                        y: { 
+                            title: { display: true, text: 'Litres', color: '#ffffff' },
+                            ticks: { color: '#ffffff' }
+                        }
+                    },
+                    plugins: {
+                        zoom: {
+                            pan: {
+                                enabled: true,
+                                mode: 'x',
+                                modifierKey: 'ctrl' // Hold Ctrl to pan
+                            },
+                            zoom: {
+                                wheel: { enabled: true },
+                                pinch: { enabled: true },
+                                mode: 'x'
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Reset zoom function
+            window.resetZoom = () => {
+                waterChart.resetZoom();
+            };
+
+            // Doughnut Chart for Water Level Percentage
+            const maxLitres = 3.5;
+            const latestLitres = data.latest_litres ?? 0;
+            const remainingLitres = maxLitres - latestLitres;
+
+            const ctx2 = document.getElementById('doughnutChart').getContext('2d');
+            new Chart(ctx2, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Current Water Level', 'Remaining Capacity'],
+                    datasets: [{
+                        data: [latestLitres, remainingLitres],
+                        backgroundColor: ['#1db954', '#535d6c'],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { color: '#ffffff' } }
+                    }
+                }
+            });
+        }
+
+        fetchData();
+    </script>
+</body>
+</html>
